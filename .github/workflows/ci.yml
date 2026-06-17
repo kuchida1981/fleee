@@ -14,6 +14,15 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend (required for go:embed)
+        run: cd web && npm ci && npm run build
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
@@ -31,10 +40,8 @@ jobs:
             exit 1
           fi
 
-      - name: Build
-        run: |
-          cd web && npm ci && npm run build && cd ..
-          go build -o fleee ./cmd/fleee
+      - name: Build binary
+        run: go build -o fleee ./cmd/fleee
 
   frontend:
     runs-on: ubuntu-latest
