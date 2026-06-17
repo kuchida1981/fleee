@@ -2,7 +2,8 @@ package fleee
 
 import "embed"
 
-// MigrationFS embeds the database migrations directory
-//
 //go:embed migrations/*.sql
 var MigrationFS embed.FS
+
+//go:embed all:web/dist
+var WebDistFS embed.FS

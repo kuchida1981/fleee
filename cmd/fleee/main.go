@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 
@@ -66,7 +67,11 @@ func runServer(port, dbPath string) {
 	accountHandler := handler.NewAccountHandler(accountStore, accountImporter)
 
 	// 4. Setup and start Server
-	srv := server.NewServer(port, accountHandler)
+	webFS, err := fs.Sub(fleee.WebDistFS, "web/dist")
+	if err != nil {
+		log.Fatalf("Failed to get web dist FS: %v", err)
+	}
+	srv := server.NewServer(port, accountHandler, webFS)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("HTTP server failed: %v", err)
 	}

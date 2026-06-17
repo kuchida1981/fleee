@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"time"
 
@@ -15,14 +16,16 @@ type Server struct {
 	router         *chi.Mux
 	accountHandler *handler.AccountHandler
 	port           string
+	webFS          fs.FS
 }
 
 // NewServer creates a new Server instance
-func NewServer(port string, accountHandler *handler.AccountHandler) *Server {
+func NewServer(port string, accountHandler *handler.AccountHandler, webFS fs.FS) *Server {
 	s := &Server{
 		router:         chi.NewRouter(),
 		accountHandler: accountHandler,
 		port:           port,
+		webFS:          webFS,
 	}
 	s.setupRoutes()
 	return s
@@ -40,10 +43,29 @@ func (s *Server) setupRoutes() {
 		r.Mount("/accounts", s.accountHandler.Routes())
 	})
 
-	// Fallback route for API server health check
-	s.router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Write([]byte("fleee API Server is running"))
+	// Serve static files and fallback to SPA index.html
+	s.router.Handle("/*", spaHandler(s.webFS))
+}
+
+func spaHandler(webFS fs.FS) http.Handler {
+	fsrv := http.FileServer(http.FS(webFS))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if len(path) > 0 && path[0] == '/' {
+			path = path[1:]
+		}
+		if path == "" {
+			path = "index.html"
+		}
+
+		// Check if file exists in the embedded filesystem
+		_, err := fs.Stat(webFS, path)
+		if err != nil {
+			// File does not exist, rewrite request path to index.html for SPA
+			r.URL.Path = "/index.html"
+		}
+
+		fsrv.ServeHTTP(w, r)
 	})
 }
 
