@@ -184,7 +184,7 @@ func resolveAccountType(name, balanceType, statementType string) (model.AccountT
 	}
 	if balanceType == "貸方" && statementType == "貸借対照表" {
 		// Known equity accounts in Japan
-		if name == "元入金" || name == "事業主借" || name == "事業主貸" {
+		if name == "元入金" {
 			return model.AccountTypeEquity, nil
 		}
 		return model.AccountTypeLiability, nil
