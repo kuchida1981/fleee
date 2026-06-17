@@ -14,6 +14,32 @@
 | フロントエンド | React, Vite, TypeScript, Tailwind CSS, shadcn/ui |
 | 配布形態 | 単一バイナリ (go:embed でフロント埋め込み) |
 
+## テスト方針
+
+### 戦略
+
+- **Go**: SQLite `:memory:` を使ったインテグレーションテスト。モックは使わず全レイヤーで実 DB を通す
+- **Frontend**: Vitest + React Testing Library + jsdom。API モックは `vi.mock` を使用
+- **カバレッジ目標**: Go / Frontend ともに 80% 以上を CI で enforce
+
+### Go テストの書き方
+
+- `testutil.NewTestDB(t)` で in-memory DB を取得（マイグレーション済み、`t.Cleanup()` で自動クローズ）
+- store テスト: 正常系 + エラー系（ErrNotFound, ErrDuplicateName 等）
+- handler テスト: `httptest.NewRecorder` + `chi.NewRouter()` で HTTP サイクル全体をテスト
+- テストファイルは対象ファイルと同じディレクトリに `*_test.go` で配置
+
+### Frontend テストの書き方
+
+- テストファイルは対象コンポーネントと同じディレクトリに `*.test.tsx` で配置
+- `src/components/ui/` (shadcn/ui) はテスト・カバレッジ対象外
+- API 呼び出しは `vi.mock('@/api/...')` でモック
+
+### Lint / Format
+
+- Go: golangci-lint (govet, staticcheck, errcheck, unused, gofmt)
+- Frontend: ESLint + Prettier (prettier-plugin-tailwindcss)
+
 ## AI ツール役割分担
 
 このプロジェクトでは Claude Code と Antigravity CLI (agy) を役割に応じて使い分ける。

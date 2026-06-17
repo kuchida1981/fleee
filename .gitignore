@@ -1,3 +1,5 @@
 /fleee
 *.db
 web/dist/
+coverage.out
+web/coverage/

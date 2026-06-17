@@ -26,13 +26,13 @@ func NewDB(dbPath string) (*DB, error) {
 
 	// Verify connection
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	// Enable foreign key support
 	if _, err = db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
 	}
 
@@ -92,12 +92,12 @@ func (d *DB) Migrate(migrationFS embed.FS) error {
 		}
 
 		if _, err := tx.Exec(string(content)); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to execute migration %s: %w", filename, err)
 		}
 
 		if _, err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", filename); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to record migration %s: %w", filename, err)
 		}
 

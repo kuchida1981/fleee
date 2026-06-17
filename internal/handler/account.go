@@ -46,13 +46,13 @@ type errorResponse struct {
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(errorResponse{Error: message})
+	_ = json.NewEncoder(w).Encode(errorResponse{Error: message})
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(payload)
+	_ = json.NewEncoder(w).Encode(payload)
 }
 
 func isValidAccountType(t model.AccountType) bool {
@@ -232,7 +232,7 @@ func (h *AccountHandler) Import(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "file parameter is required")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	isTSV := strings.HasSuffix(strings.ToLower(header.Filename), ".tsv")
 
