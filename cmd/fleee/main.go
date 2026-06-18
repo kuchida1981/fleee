@@ -63,6 +63,8 @@ func runServer(port, dbPath string) {
 
 	// 3. Set up repository, importer and handler layers
 	accountStore := store.NewAccountStore(db)
+	journalEntryStore := store.NewJournalEntryStore(db)
+	journalEntryHandler := handler.NewJournalEntryHandler(journalEntryStore)
 	accountImporter := importer.NewAccountImporter(accountStore)
 	accountHandler := handler.NewAccountHandler(accountStore, accountImporter)
 
@@ -71,7 +73,7 @@ func runServer(port, dbPath string) {
 	if err != nil {
 		log.Fatalf("Failed to get web dist FS: %v", err)
 	}
-	srv := server.NewServer(port, accountHandler, webFS)
+	srv := server.NewServer(port, accountHandler, journalEntryHandler, webFS)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("HTTP server failed: %v", err)
 	}
