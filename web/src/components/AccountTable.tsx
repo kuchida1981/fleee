@@ -26,14 +26,14 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export function AccountTable({ accounts, onEdit, onDelete }: AccountTableProps) {
   if (accounts.length === 0) {
     return (
-      <div className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg p-12 text-center text-neutral-500 dark:text-neutral-400">
+      <div className="rounded-lg border border-dashed border-neutral-200 p-12 text-center text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
         勘定科目が登録されていません
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
+    <div className="rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
       <Table>
         <TableHeader>
           <TableRow>
@@ -49,7 +49,7 @@ export function AccountTable({ accounts, onEdit, onDelete }: AccountTableProps) 
               <TableCell className="font-medium">{account.name}</TableCell>
               <TableCell>{ACCOUNT_TYPE_LABELS[account.account_type]}</TableCell>
               <TableCell>{account.display_order}</TableCell>
-              <TableCell className="text-right space-x-2">
+              <TableCell className="space-x-2 text-right">
                 <Button variant="outline" size="sm" onClick={() => onEdit(account)}>
                   編集
                 </Button>

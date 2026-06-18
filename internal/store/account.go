@@ -93,7 +93,7 @@ func (s *AccountStore) ListAll(ctx context.Context) ([]*model.Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list accounts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var accounts []*model.Account
 	for rows.Next() {

@@ -22,19 +22,10 @@ interface AccountFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: Account;
-  onSubmit: (data: {
-    name: string;
-    account_type: AccountType;
-    display_order: number;
-  }) => void;
+  onSubmit: (data: { name: string; account_type: AccountType; display_order: number }) => void;
 }
 
-export function AccountForm({
-  open,
-  onOpenChange,
-  account,
-  onSubmit,
-}: AccountFormProps) {
+export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFormProps) {
   const [name, setName] = useState(account?.name ?? '');
   const [accountType, setAccountType] = useState<AccountType | ''>(account?.account_type ?? '');
   const [displayOrder, setDisplayOrder] = useState<number>(account?.display_order ?? 0);
@@ -81,17 +72,12 @@ export function AccountForm({
               onChange={(e) => setName(e.target.value)}
               placeholder="例: 普通預金"
             />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-destructive text-xs">{errors.name}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="account_type">勘定区分</Label>
-            <Select
-              value={accountType}
-              onValueChange={(val) => setAccountType(val as AccountType)}
-            >
+            <Select value={accountType} onValueChange={(val) => setAccountType(val as AccountType)}>
               <SelectTrigger id="account_type" className="w-full">
                 <SelectValue placeholder="勘定区分を選択してください" />
               </SelectTrigger>
@@ -103,9 +89,7 @@ export function AccountForm({
                 <SelectItem value="expense">費用</SelectItem>
               </SelectContent>
             </Select>
-            {errors.accountType && (
-              <p className="text-xs text-destructive">{errors.accountType}</p>
-            )}
+            {errors.accountType && <p className="text-destructive text-xs">{errors.accountType}</p>}
           </div>
 
           <div className="space-y-1.5">

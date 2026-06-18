@@ -73,15 +73,12 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
             </p>
           </div>
 
-          {error && (
-            <div className="text-sm text-destructive font-medium">
-              {error}
-            </div>
-          )}
+          {error && <div className="text-destructive text-sm font-medium">{error}</div>}
 
           {result && (
-            <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3 border border-green-200 dark:border-green-900/50 text-sm text-green-800 dark:text-green-300">
-              {result.total}件中 {result.success}件をインポートしました（{result.skipped}件スキップ）
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-300">
+              {result.total}件中 {result.success}件をインポートしました（{result.skipped}
+              件スキップ）
             </div>
           )}
         </div>

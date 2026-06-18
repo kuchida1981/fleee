@@ -1,0 +1,14 @@
+version: "2"
+formatters:
+  enable:
+    - gofmt
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - unused
+  exclusions:
+    paths:
+      - "web/node_modules/.*"

@@ -54,7 +54,7 @@ func runServer(port, dbPath string) {
 	if err != nil {
 		log.Fatalf("Database initialization failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// 2. Execute pending database migrations
 	if err := db.Migrate(fleee.MigrationFS); err != nil {

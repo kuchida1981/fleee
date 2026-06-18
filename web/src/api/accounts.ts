@@ -40,7 +40,7 @@ export async function updateAccount(
     name: string;
     account_type: AccountType;
     display_order: number;
-  }
+  },
 ): Promise<Account> {
   const response = await fetch(`/api/accounts/${id}`, {
     method: 'PUT',
@@ -77,4 +77,3 @@ export async function importAccounts(file: File): Promise<ImportResult> {
   }
   return response.json();
 }
-

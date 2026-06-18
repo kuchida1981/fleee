@@ -33,7 +33,7 @@ func NewServer(port string, accountHandler *handler.AccountHandler, webFS fs.FS)
 
 func (s *Server) setupRoutes() {
 	s.router.Use(middleware.RequestID)
-	s.router.Use(middleware.RealIP)
+	s.router.Use(middleware.RealIP) //nolint:staticcheck
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
 	s.router.Use(middleware.Timeout(60 * time.Second))
