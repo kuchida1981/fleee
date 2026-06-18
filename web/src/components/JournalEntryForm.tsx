@@ -230,7 +230,7 @@ export function JournalEntryForm({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="je-debit">借方科目</Label>
-                  <Select value={debitAccountId} onValueChange={setDebitAccountId}>
+                  <Select value={debitAccountId} onValueChange={(v) => setDebitAccountId(v ?? '')}>
                     <SelectTrigger id="je-debit" className="w-full">
                       <SelectValue placeholder="借方科目を選択" />
                     </SelectTrigger>
@@ -248,7 +248,10 @@ export function JournalEntryForm({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="je-credit">貸方科目</Label>
-                  <Select value={creditAccountId} onValueChange={setCreditAccountId}>
+                  <Select
+                    value={creditAccountId}
+                    onValueChange={(v) => setCreditAccountId(v ?? '')}
+                  >
                     <SelectTrigger id="je-credit" className="w-full">
                       <SelectValue placeholder="貸方科目を選択" />
                     </SelectTrigger>
@@ -296,7 +299,7 @@ export function JournalEntryForm({
                         <TableCell>
                           <Select
                             value={line.accountId}
-                            onValueChange={(v) => updateLine(i, 'accountId', v)}
+                            onValueChange={(v) => updateLine(i, 'accountId', v ?? '')}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="科目を選択" />
@@ -350,9 +353,11 @@ export function JournalEntryForm({
                   + 行追加
                 </Button>
                 <div className="text-sm">
-                  借方合計: <span className="font-mono font-bold">{totalDebit.toLocaleString()}</span>
+                  借方合計:{' '}
+                  <span className="font-mono font-bold">{totalDebit.toLocaleString()}</span>
                   {' / '}
-                  貸方合計: <span className="font-mono font-bold">{totalCredit.toLocaleString()}</span>
+                  貸方合計:{' '}
+                  <span className="font-mono font-bold">{totalCredit.toLocaleString()}</span>
                   {totalDebit > 0 || totalCredit > 0 ? (
                     isBalanced ? (
                       <span className="ml-2 text-green-600">✓ 一致</span>
@@ -362,14 +367,17 @@ export function JournalEntryForm({
                   ) : null}
                 </div>
               </div>
-              {errors.balance && (
-                <p className="text-destructive text-xs">{errors.balance}</p>
-              )}
+              {errors.balance && <p className="text-destructive text-xs">{errors.balance}</p>}
             </div>
           )}
 
           <div className="flex items-center justify-between">
-            <Button type="button" variant="ghost" size="sm" onClick={isCompound ? switchToSingle : switchToCompound}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={isCompound ? switchToSingle : switchToCompound}
+            >
               {isCompound ? '単一仕訳に切替' : '複合仕訳に切替'}
             </Button>
           </div>

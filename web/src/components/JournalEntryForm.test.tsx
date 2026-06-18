@@ -5,8 +5,26 @@ import type { Account } from '@/types/account';
 import type { JournalEntry } from '@/types/journalEntry';
 
 const mockAccounts: Account[] = [
-  { id: 1, name: '通信費', account_type: 'expense', display_order: 1, normal_balance: 'debit', statement_type: 'income_statement', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
-  { id: 2, name: '普通預金', account_type: 'asset', display_order: 2, normal_balance: 'debit', statement_type: 'balance_sheet', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
+  {
+    id: 1,
+    name: '通信費',
+    account_type: 'expense',
+    display_order: 1,
+    normal_balance: 'debit',
+    statement_type: 'income_statement',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    name: '普通預金',
+    account_type: 'asset',
+    display_order: 2,
+    normal_balance: 'debit',
+    statement_type: 'balance_sheet',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
 ];
 
 const mockEntry: JournalEntry = {
@@ -16,8 +34,22 @@ const mockEntry: JournalEntry = {
   receipt_required: false,
   memo: '',
   lines: [
-    { id: 1, journal_entry_id: 1, account_id: 1, account_name: '通信費', debit_amount: 10000, credit_amount: 0 },
-    { id: 2, journal_entry_id: 1, account_id: 2, account_name: '普通預金', debit_amount: 0, credit_amount: 10000 },
+    {
+      id: 1,
+      journal_entry_id: 1,
+      account_id: 1,
+      account_name: '通信費',
+      debit_amount: 10000,
+      credit_amount: 0,
+    },
+    {
+      id: 2,
+      journal_entry_id: 1,
+      account_id: 2,
+      account_name: '普通預金',
+      debit_amount: 0,
+      credit_amount: 10000,
+    },
   ],
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
@@ -31,7 +63,7 @@ describe('JournalEntryForm', () => {
         onOpenChange={vi.fn()}
         accounts={mockAccounts}
         onSubmit={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText('仕訳を作成')).toBeInTheDocument();
@@ -48,7 +80,7 @@ describe('JournalEntryForm', () => {
         accounts={mockAccounts}
         entry={mockEntry}
         onSubmit={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText('仕訳を編集')).toBeInTheDocument();
@@ -65,7 +97,7 @@ describe('JournalEntryForm', () => {
         onOpenChange={vi.fn()}
         accounts={mockAccounts}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     // Click submit when description is empty
@@ -84,7 +116,7 @@ describe('JournalEntryForm', () => {
         onOpenChange={vi.fn()}
         accounts={mockAccounts}
         onSubmit={vi.fn()}
-      />
+      />,
     );
 
     // Initial state is single mode, "+ 行追加" button should not be present

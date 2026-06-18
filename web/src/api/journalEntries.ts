@@ -20,9 +20,7 @@ export async function getJournalEntry(id: number): Promise<JournalEntry> {
   return response.json();
 }
 
-export async function createJournalEntry(
-  data: CreateJournalEntryRequest,
-): Promise<JournalEntry> {
+export async function createJournalEntry(data: CreateJournalEntryRequest): Promise<JournalEntry> {
   const response = await fetch('/api/journal-entries', {
     method: 'POST',
     headers: {

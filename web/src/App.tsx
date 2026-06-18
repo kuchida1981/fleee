@@ -76,10 +76,7 @@ function App() {
       setError(null);
       setEntriesError(null);
       try {
-        const [accountData, entryData] = await Promise.all([
-          listAccounts(),
-          listJournalEntries(),
-        ]);
+        const [accountData, entryData] = await Promise.all([listAccounts(), listJournalEntries()]);
         if (!active) return;
         const sorted = [...accountData].sort((a, b) => a.display_order - b.display_order);
         setAccounts(sorted);
