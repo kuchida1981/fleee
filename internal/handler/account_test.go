@@ -154,8 +154,13 @@ func TestAccountHandler_Get(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("setup: failed to create account: %s", w.Body.String())
+	}
 	var created map[string]interface{}
-	_ = json.NewDecoder(w.Body).Decode(&created)
+	if err := json.NewDecoder(w.Body).Decode(&created); err != nil {
+		t.Fatalf("setup: failed to decode response: %v", err)
+	}
 	id := int(created["id"].(float64))
 
 	t.Run("success", func(t *testing.T) {
@@ -199,7 +204,8 @@ func TestAccountHandler_Get(t *testing.T) {
 func TestAccountHandler_Update(t *testing.T) {
 	_, r := setupTestHandler(t)
 
-	// Create accounts
+	// Create accounts and capture IDs
+	var ids []int
 	for _, b := range []string{
 		`{"name":"Cash","account_type":"asset","display_order":1}`,
 		`{"name":"Bank","account_type":"asset","display_order":2}`,
@@ -208,11 +214,19 @@ func TestAccountHandler_Update(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
+		if w.Code != http.StatusCreated {
+			t.Fatalf("setup: failed to create account: %s", w.Body.String())
+		}
+		var created map[string]interface{}
+		if err := json.NewDecoder(w.Body).Decode(&created); err != nil {
+			t.Fatalf("setup: failed to decode response: %v", err)
+		}
+		ids = append(ids, int(created["id"].(float64)))
 	}
 
 	t.Run("success", func(t *testing.T) {
 		body := `{"name":"Petty Cash","account_type":"asset","display_order":1}`
-		req := httptest.NewRequest(http.MethodPut, "/api/accounts/1", bytes.NewBufferString(body))
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/accounts/%d", ids[0]), bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -236,7 +250,7 @@ func TestAccountHandler_Update(t *testing.T) {
 
 	t.Run("duplicate name", func(t *testing.T) {
 		body := `{"name":"Bank","account_type":"asset","display_order":1}`
-		req := httptest.NewRequest(http.MethodPut, "/api/accounts/1", bytes.NewBufferString(body))
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/accounts/%d", ids[0]), bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -247,7 +261,7 @@ func TestAccountHandler_Update(t *testing.T) {
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPut, "/api/accounts/1", bytes.NewBufferString("{bad"))
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/accounts/%d", ids[0]), bytes.NewBufferString("{bad"))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -259,7 +273,7 @@ func TestAccountHandler_Update(t *testing.T) {
 
 	t.Run("empty name", func(t *testing.T) {
 		body := `{"name":"","account_type":"asset","display_order":1}`
-		req := httptest.NewRequest(http.MethodPut, "/api/accounts/1", bytes.NewBufferString(body))
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/accounts/%d", ids[0]), bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -271,7 +285,7 @@ func TestAccountHandler_Update(t *testing.T) {
 
 	t.Run("invalid type", func(t *testing.T) {
 		body := `{"name":"Test","account_type":"invalid","display_order":1}`
-		req := httptest.NewRequest(http.MethodPut, "/api/accounts/1", bytes.NewBufferString(body))
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/accounts/%d", ids[0]), bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
@@ -291,9 +305,17 @@ func TestAccountHandler_Delete(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("setup: failed to create account: %s", w.Body.String())
+	}
+	var created map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&created); err != nil {
+		t.Fatalf("setup: failed to decode response: %v", err)
+	}
+	deleteID := int(created["id"].(float64))
 
 	t.Run("success", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodDelete, "/api/accounts/1", nil)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/accounts/%d", deleteID), nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
