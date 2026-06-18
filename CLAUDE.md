@@ -64,8 +64,24 @@
 実装は Claude Code から次のコマンドで agy に委譲する:
 
 ```bash
-agy --dangerously-skip-permissions --print "<実装プロンプト>" 2>&1
+GIT_TERMINAL_PROMPT=0 CI=true \
+  agy --dangerously-skip-permissions --print-timeout 3m --print "<実装プロンプト>" 2>&1
 ```
+
+**タイムアウト値の目安:**
+
+| タスク規模 | ファイル数 | タイムアウト |
+|-----------|-----------|------------|
+| 小 | 1-2 | `--print-timeout 3m` |
+| 中 | 3-5 | `--print-timeout 5m` |
+| 大 | 6+ | `--print-timeout 8m`（さらなる分割を検討） |
+
+`CI=true` の副作用でツールの動作が変わった場合は、当該環境変数を除外してプロンプト内ルールのみでハング予防する。
+
+**タスク単位の分割呼び出し:**
+一括委譲ではなく、OpenSpec tasks.md の各タスクを個別の agy ワンショットで実行する。
+十分に小さいタスク（1ファイルの小変更）は Claude Code の判断でまとめてよい。
+各タスク完了後に `git status` / `git diff` で結果を確認してから次のタスクに進む。
 
 プロンプトには以下を含める:
 - 実装対象ファイルと変更内容（具体的に）
@@ -74,8 +90,21 @@ agy --dangerously-skip-permissions --print "<実装プロンプト>" 2>&1
 - OpenSpec の change ディレクトリへの参照（`openspec/changes/<name>/` 以下）
 - **実装完了後に `git add <実装ファイル> && git commit -m "feat: <変更内容>"` でコミットすること**
 - **不明点・判断に迷う点がある場合は実装せず、`[QUESTION] ...` の形式で質問を出力すること**
+- **ハング予防ルール（以下の「agy プロンプトの必須ルール」セクション参照）**
 
 実装完了後は Claude Code で `git diff HEAD` または `git log` を確認してからレビューに進む。
+
+### agy プロンプトの必須ルール
+
+agy へのすべてのプロンプトに、以下のルールを必ず含める:
+
+```
+制約:
+- 対話的入力（y/n, パスワード等）を求めるコマンドは絶対に実行しないこと
+- 必ず非対話フラグ（--yes, -y, --no-input 等）を付けること
+- git push, npm publish など外部サービスへの送信は行わないこと
+- 対話的入力が必要な状況に遭遇したら、実行せず [QUESTION] で報告すること
+```
 
 ### agy との対話ループ
 
@@ -94,6 +123,27 @@ agy 実行 (1回目)
 ```
 
 **ループの上限は 3 回**。3 回で解決しない場合は Claude Code が直接実装に切り替える。
+
+### agy タイムアウト時のリカバリ
+
+agy がタイムアウトまたはハングした場合、以下のフローで対応する:
+
+```
+タイムアウト発生
+  ↓
+git status / git diff で途中成果を確認
+  ├─ 成果あり → --continue で残り作業を指示
+  │   agy --dangerously-skip-permissions --print-timeout 3m \
+  │     --continue --print "前回タイムアウトした。対話的入力を避けて続行しろ"
+  └─ 成果なし → 新規セッションで別アプローチを試行
+      ↓
+再試行も失敗（2回連続）
+  ↓
+Claude Code が直接実装に切り替える
+```
+
+**注意:** `--print-timeout` が効かないケースがある。Bash ツールの `timeout` パラメータも併用し、
+agy プロセスが応答しない場合は `kill` して対処する。
 
 **Claude Code がユーザーに確認すべきケース:**
 - ビジネスロジックの仕様判断（「この場合どう振る舞うべきか」）
@@ -123,13 +173,23 @@ agy 実行 (1回目)
    git add openspec/changes/<change-name>/
    git commit -m "docs(openspec): propose <change-name>"
 
-3. 実装 (agy + 対話ループ)
-   agy --dangerously-skip-permissions --print "..." で委譲
+3. 実装 (agy タスク単位 × N)
+   tasks.md の各タスクを個別の agy ワンショットで実行
+   GIT_TERMINAL_PROMPT=0 CI=true \
+     agy --dangerously-skip-permissions --print-timeout 3m --print "..." 2>&1
+   → 各タスク完了後に git status / git diff で確認
    → [QUESTION] があれば Claude Code が回答 or ユーザーに確認し再実行
+   → タイムアウト時は --continue で再開 or Claude Code が引き継ぐ
    → agy が実装コードをコミットする（"feat: <変更内容>"）
 
+3.5. agy 別セッションレビュー (agy 新規セッション)
+   実装とは別の新規 agy セッションで diff をレビューさせる
+   → 変更要約（変更ファイル一覧、問題点、設計判断、テスト充足度）を出力させる
+   → Claude Code は要約をベースに最終レビューの判断材料にする
+   → 変更が 1 ファイル・20 行以下の場合はこのステップを省略してよい
+
 4. コードレビュー (Claude Code)
-   /code-review
+   /code-review（agy レビュー結果も参考にしつつ最終判断）
    → 指摘があれば、修正内容を具体的にまとめる
 
 5. レビュー指摘の修正 (agy)
