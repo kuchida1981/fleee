@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/kosuke/fleee/internal/handler"
 	"github.com/kosuke/fleee/internal/importer"
+	"github.com/kosuke/fleee/internal/model"
 	"github.com/kosuke/fleee/internal/store"
 	"github.com/kosuke/fleee/internal/testutil"
 )
@@ -341,6 +343,69 @@ func TestAccountHandler_Delete(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("expected 400, got %d", w.Code)
+		}
+	})
+
+	t.Run("in use by journal entry", func(t *testing.T) {
+		db := testutil.NewTestDB(t)
+		accountStore := store.NewAccountStore(db)
+		journalStore := store.NewJournalEntryStore(db)
+		accountImporter := importer.NewAccountImporter(accountStore)
+
+		h := handler.NewAccountHandler(accountStore, accountImporter)
+		router := chi.NewRouter()
+		router.Mount("/api/accounts", h.Routes())
+
+		ctx := context.Background()
+
+		// Create two accounts
+		debitAcc := &model.Account{
+			Name:         "Debit Acc",
+			AccountType:  model.AccountTypeExpense,
+			DisplayOrder: 10,
+		}
+		creditAcc := &model.Account{
+			Name:         "Credit Acc",
+			AccountType:  model.AccountTypeAsset,
+			DisplayOrder: 20,
+		}
+		if err := accountStore.Create(ctx, debitAcc); err != nil {
+			t.Fatalf("failed to create debit account: %v", err)
+		}
+		if err := accountStore.Create(ctx, creditAcc); err != nil {
+			t.Fatalf("failed to create credit account: %v", err)
+		}
+
+		// Create a journal entry using these accounts
+		entry := &model.JournalEntry{
+			Date:            "2026-06-18",
+			Description:     "Test Journal",
+			ReceiptRequired: false,
+			Memo:            "",
+			Lines: []model.JournalLine{
+				{AccountID: debitAcc.ID, DebitAmount: 1000, CreditAmount: 0},
+				{AccountID: creditAcc.ID, DebitAmount: 0, CreditAmount: 1000},
+			},
+		}
+		if err := journalStore.Create(ctx, entry); err != nil {
+			t.Fatalf("failed to create journal entry: %v", err)
+		}
+
+		// Try to delete debitAcc (should fail with 409 Conflict)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/accounts/%d", debitAcc.ID), nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusConflict {
+			t.Errorf("expected 409, got %d. body: %s", w.Code, w.Body.String())
+		}
+
+		var resp map[string]string
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp["error"] != "account is in use by journal entries" {
+			t.Errorf("expected error message 'account is in use by journal entries', got '%s'", resp["error"])
 		}
 	})
 }
