@@ -7,20 +7,28 @@ vi.mock('@/api/accounts', () => ({
   deleteAccount: vi.fn(),
 }));
 
+vi.mock('@/api/journalEntries', () => ({
+  listJournalEntries: vi.fn().mockResolvedValue([]),
+  createJournalEntry: vi.fn(),
+  updateJournalEntry: vi.fn(),
+  deleteJournalEntry: vi.fn(),
+}));
+
 describe('App', () => {
-  it('renders header and page title', async () => {
+  it('renders header and navigation', async () => {
     const { default: App } = await import('./App');
     render(<App />);
 
     expect(screen.getByText('fleee')).toBeInTheDocument();
-    expect(screen.getByText('勘定科目管理')).toBeInTheDocument();
+    expect(screen.getByText('仕訳')).toBeInTheDocument();
+    expect(screen.getByText('勘定科目')).toBeInTheDocument();
   });
 
-  it('renders create and import buttons', async () => {
+  it('renders journal entries page by default', async () => {
     const { default: App } = await import('./App');
     render(<App />);
 
-    expect(screen.getByText('勘定科目を作成')).toBeInTheDocument();
-    expect(screen.getByText('インポート')).toBeInTheDocument();
+    expect(screen.getByText('仕訳管理')).toBeInTheDocument();
+    expect(screen.getByText('仕訳を作成')).toBeInTheDocument();
   });
 });
