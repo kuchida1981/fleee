@@ -27,19 +27,25 @@ func NewJournalEntryStore(db *DB) *JournalEntryStore {
 	return &JournalEntryStore{db: db}
 }
 
-// Create inserts a new journal entry and its lines in a transaction
-func (s *JournalEntryStore) Create(ctx context.Context, entry *model.JournalEntry) (err error) {
-	// Validation
-	if len(entry.Lines) < 2 {
+func validateJournalLines(lines []model.JournalLine) error {
+	if len(lines) < 2 {
 		return ErrInsufficientLines
 	}
 	var totalDebit, totalCredit int64
-	for _, line := range entry.Lines {
+	for _, line := range lines {
 		totalDebit += line.DebitAmount
 		totalCredit += line.CreditAmount
 	}
 	if totalDebit != totalCredit {
 		return ErrUnbalanced
+	}
+	return nil
+}
+
+// Create inserts a new journal entry and its lines in a transaction
+func (s *JournalEntryStore) Create(ctx context.Context, entry *model.JournalEntry) (err error) {
+	if err := validateJournalLines(entry.Lines); err != nil {
+		return err
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -227,17 +233,8 @@ func (s *JournalEntryStore) ListAll(ctx context.Context) ([]*model.JournalEntry,
 
 // Update updates an existing journal entry and its lines in a transaction
 func (s *JournalEntryStore) Update(ctx context.Context, entry *model.JournalEntry) (err error) {
-	// Validation
-	if len(entry.Lines) < 2 {
-		return ErrInsufficientLines
-	}
-	var totalDebit, totalCredit int64
-	for _, line := range entry.Lines {
-		totalDebit += line.DebitAmount
-		totalCredit += line.CreditAmount
-	}
-	if totalDebit != totalCredit {
-		return ErrUnbalanced
+	if err := validateJournalLines(entry.Lines); err != nil {
+		return err
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)

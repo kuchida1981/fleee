@@ -35,7 +35,7 @@ func (h *JournalEntryHandler) Routes() chi.Router {
 	return r
 }
 
-type createJournalEntryRequest struct {
+type journalEntryRequest struct {
 	Date            string               `json:"date"`
 	Description     string               `json:"description"`
 	ReceiptRequired bool                 `json:"receipt_required"`
@@ -49,12 +49,61 @@ type journalLineRequest struct {
 	CreditAmount int64 `json:"credit_amount"`
 }
 
-type updateJournalEntryRequest struct {
-	Date            string               `json:"date"`
-	Description     string               `json:"description"`
-	ReceiptRequired bool                 `json:"receipt_required"`
-	Memo            string               `json:"memo"`
-	Lines           []journalLineRequest `json:"lines"`
+func parseJournalEntryRequest(r *http.Request) (*journalEntryRequest, error) {
+	var req journalEntryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, err
+	}
+	req.Date = strings.TrimSpace(req.Date)
+	req.Description = strings.TrimSpace(req.Description)
+	return &req, nil
+}
+
+func validateJournalEntryRequest(req *journalEntryRequest, w http.ResponseWriter) bool {
+	if req.Date == "" {
+		respondWithError(w, http.StatusBadRequest, "date is required")
+		return false
+	}
+	if req.Description == "" {
+		respondWithError(w, http.StatusBadRequest, "description is required")
+		return false
+	}
+	return true
+}
+
+func (req *journalEntryRequest) toModel(id int64) *model.JournalEntry {
+	lines := make([]model.JournalLine, len(req.Lines))
+	for i, l := range req.Lines {
+		lines[i] = model.JournalLine{
+			AccountID:    l.AccountID,
+			DebitAmount:  l.DebitAmount,
+			CreditAmount: l.CreditAmount,
+		}
+	}
+	return &model.JournalEntry{
+		ID:              id,
+		Date:            req.Date,
+		Description:     req.Description,
+		ReceiptRequired: req.ReceiptRequired,
+		Memo:            req.Memo,
+		Lines:           lines,
+	}
+}
+
+func handleStoreError(w http.ResponseWriter, err error) {
+	if errors.Is(err, store.ErrUnbalanced) {
+		respondWithError(w, http.StatusBadRequest, "journal entry is not balanced")
+		return
+	}
+	if errors.Is(err, store.ErrInsufficientLines) {
+		respondWithError(w, http.StatusBadRequest, "journal entry must have at least 2 lines")
+		return
+	}
+	if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+		respondWithError(w, http.StatusBadRequest, "invalid account ID")
+		return
+	}
+	respondWithError(w, http.StatusInternalServerError, err.Error())
 }
 
 // List handles GET /
@@ -72,56 +121,18 @@ func (h *JournalEntryHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Create handles POST /
 func (h *JournalEntryHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var req createJournalEntryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req, err := parseJournalEntryRequest(r)
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-
-	req.Date = strings.TrimSpace(req.Date)
-	req.Description = strings.TrimSpace(req.Description)
-
-	if req.Date == "" {
-		respondWithError(w, http.StatusBadRequest, "date is required")
-		return
-	}
-	if req.Description == "" {
-		respondWithError(w, http.StatusBadRequest, "description is required")
+	if !validateJournalEntryRequest(req, w) {
 		return
 	}
 
-	lines := make([]model.JournalLine, len(req.Lines))
-	for i, l := range req.Lines {
-		lines[i] = model.JournalLine{
-			AccountID:    l.AccountID,
-			DebitAmount:  l.DebitAmount,
-			CreditAmount: l.CreditAmount,
-		}
-	}
-
-	entry := &model.JournalEntry{
-		Date:            req.Date,
-		Description:     req.Description,
-		ReceiptRequired: req.ReceiptRequired,
-		Memo:            req.Memo,
-		Lines:           lines,
-	}
-
-	err := h.store.Create(r.Context(), entry)
-	if err != nil {
-		if errors.Is(err, store.ErrUnbalanced) {
-			respondWithError(w, http.StatusBadRequest, "journal entry is not balanced")
-			return
-		}
-		if errors.Is(err, store.ErrInsufficientLines) {
-			respondWithError(w, http.StatusBadRequest, "journal entry must have at least 2 lines")
-			return
-		}
-		if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
-			respondWithError(w, http.StatusBadRequest, "invalid account ID")
-			return
-		}
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	entry := req.toModel(0)
+	if err := h.store.Create(r.Context(), entry); err != nil {
+		handleStoreError(w, err)
 		return
 	}
 
@@ -159,61 +170,23 @@ func (h *JournalEntryHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req updateJournalEntryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req, err := parseJournalEntryRequest(r)
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-
-	req.Date = strings.TrimSpace(req.Date)
-	req.Description = strings.TrimSpace(req.Description)
-
-	if req.Date == "" {
-		respondWithError(w, http.StatusBadRequest, "date is required")
-		return
-	}
-	if req.Description == "" {
-		respondWithError(w, http.StatusBadRequest, "description is required")
+	if !validateJournalEntryRequest(req, w) {
 		return
 	}
 
-	lines := make([]model.JournalLine, len(req.Lines))
-	for i, l := range req.Lines {
-		lines[i] = model.JournalLine{
-			AccountID:    l.AccountID,
-			DebitAmount:  l.DebitAmount,
-			CreditAmount: l.CreditAmount,
-		}
-	}
-
-	entry := &model.JournalEntry{
-		ID:              id,
-		Date:            req.Date,
-		Description:     req.Description,
-		ReceiptRequired: req.ReceiptRequired,
-		Memo:            req.Memo,
-		Lines:           lines,
-	}
-
+	entry := req.toModel(id)
 	err = h.store.Update(r.Context(), entry)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			respondWithError(w, http.StatusNotFound, "journal entry not found")
 			return
 		}
-		if errors.Is(err, store.ErrUnbalanced) {
-			respondWithError(w, http.StatusBadRequest, "journal entry is not balanced")
-			return
-		}
-		if errors.Is(err, store.ErrInsufficientLines) {
-			respondWithError(w, http.StatusBadRequest, "journal entry must have at least 2 lines")
-			return
-		}
-		if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
-			respondWithError(w, http.StatusBadRequest, "invalid account ID")
-			return
-		}
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		handleStoreError(w, err)
 		return
 	}
 
