@@ -77,11 +77,13 @@ func (s *JournalEntryStore) Create(ctx context.Context, entry *model.JournalEntr
 		VALUES (?, ?, ?, ?, ?, ?)
 	`
 	for i := range entry.Lines {
-		resLine, err := tx.ExecContext(ctx, lineQuery, entryID, entry.Lines[i].AccountID, entry.Lines[i].DebitAmount, entry.Lines[i].CreditAmount, now, now)
+		var resLine sql.Result
+		resLine, err = tx.ExecContext(ctx, lineQuery, entryID, entry.Lines[i].AccountID, entry.Lines[i].DebitAmount, entry.Lines[i].CreditAmount, now, now)
 		if err != nil {
 			return fmt.Errorf("failed to insert journal line: %w", err)
 		}
-		lineID, err := resLine.LastInsertId()
+		var lineID int64
+		lineID, err = resLine.LastInsertId()
 		if err != nil {
 			return fmt.Errorf("failed to get line last insert ID: %w", err)
 		}
@@ -283,11 +285,13 @@ func (s *JournalEntryStore) Update(ctx context.Context, entry *model.JournalEntr
 		VALUES (?, ?, ?, ?, ?, ?)
 	`
 	for i := range entry.Lines {
-		resLine, err := tx.ExecContext(ctx, lineQuery, entry.ID, entry.Lines[i].AccountID, entry.Lines[i].DebitAmount, entry.Lines[i].CreditAmount, now, now)
+		var resLine sql.Result
+		resLine, err = tx.ExecContext(ctx, lineQuery, entry.ID, entry.Lines[i].AccountID, entry.Lines[i].DebitAmount, entry.Lines[i].CreditAmount, now, now)
 		if err != nil {
 			return fmt.Errorf("failed to insert journal line: %w", err)
 		}
-		lineID, err := resLine.LastInsertId()
+		var lineID int64
+		lineID, err = resLine.LastInsertId()
 		if err != nil {
 			return fmt.Errorf("failed to get line last insert ID: %w", err)
 		}

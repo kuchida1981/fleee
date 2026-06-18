@@ -152,9 +152,13 @@ export function JournalEntryForm({
     if (!isCompound) {
       if (!debitAccountId) newErrors.debitAccountId = '借方科目は必須です';
       if (!creditAccountId) newErrors.creditAccountId = '貸方科目は必須です';
+      if (debitAccountId && creditAccountId && debitAccountId === creditAccountId)
+        newErrors.creditAccountId = '借方と貸方に同じ科目は指定できません';
       const parsedAmount = parseInt(amount);
       if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
         newErrors.amount = '金額は1以上の整数を入力してください';
+    } else {
+      if (!isBalanced) newErrors.balance = '借方合計と貸方合計が一致していません';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -358,6 +362,9 @@ export function JournalEntryForm({
                   ) : null}
                 </div>
               </div>
+              {errors.balance && (
+                <p className="text-destructive text-xs">{errors.balance}</p>
+              )}
             </div>
           )}
 
