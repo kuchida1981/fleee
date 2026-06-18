@@ -13,19 +13,21 @@ import (
 
 // Server sets up the HTTP router and coordinates starting the server
 type Server struct {
-	router         *chi.Mux
-	accountHandler *handler.AccountHandler
-	port           string
-	webFS          fs.FS
+	router              *chi.Mux
+	accountHandler      *handler.AccountHandler
+	journalEntryHandler *handler.JournalEntryHandler
+	port                string
+	webFS               fs.FS
 }
 
 // NewServer creates a new Server instance
-func NewServer(port string, accountHandler *handler.AccountHandler, webFS fs.FS) *Server {
+func NewServer(port string, accountHandler *handler.AccountHandler, journalEntryHandler *handler.JournalEntryHandler, webFS fs.FS) *Server {
 	s := &Server{
-		router:         chi.NewRouter(),
-		accountHandler: accountHandler,
-		port:           port,
-		webFS:          webFS,
+		router:              chi.NewRouter(),
+		accountHandler:      accountHandler,
+		journalEntryHandler: journalEntryHandler,
+		port:                port,
+		webFS:               webFS,
 	}
 	s.setupRoutes()
 	return s
@@ -41,6 +43,7 @@ func (s *Server) setupRoutes() {
 	// API routes prefix
 	s.router.Route("/api", func(r chi.Router) {
 		r.Mount("/accounts", s.accountHandler.Routes())
+		r.Mount("/journal-entries", s.journalEntryHandler.Routes())
 	})
 
 	// Serve static files and fallback to SPA index.html

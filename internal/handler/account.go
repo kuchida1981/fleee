@@ -211,6 +211,10 @@ func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusNotFound, "account not found")
 			return
 		}
+		if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+			respondWithError(w, http.StatusConflict, "account is in use by journal entries")
+			return
+		}
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
